@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dedica Saúde — Administração</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --tinta:#132a24;        /* verde petróleo escuro p/ títulos */
+  --tinta-2:#1d3d34;
+  --musgo:#0f7a5f;        /* verde clínico (primária) */
+  --musgo-cl:#3aa585;
+  --areia:#eef2f1;        /* fundo neutro frio (não creme) */
+  --papel:#ffffff;
+  --linha:#dde5e2;
+  --linha-2:#eaefed;
+  --texto:#182420;
+  --suave:#5f6f69;
+  --alerta:#c0392b;
+  --alerta-bg:#fbe9e6;
+  --atencao:#9a6b12;
+  --atencao-bg:#f7edd6;
+  --ok:#0f7a5f;
+  --ok-bg:#e2f1ec;
+  --branco:#ffffff;
+  --r:12px;
+  --r-sm:9px;
+  --sombra:0 1px 2px rgba(19,42,36,.05), 0 6px 18px rgba(19,42,36,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--areia);color:var(--texto);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
+body{min-height:100dvh}
+h1,h2,h3{font-family:Inter,system-ui,sans-serif;font-weight:700;line-height:1.18;letter-spacing:-.02em;color:var(--tinta)}
+a{color:var(--musgo)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 18px}
+.narrow{max-width:560px}
+
+/* ---------- topo ---------- */
+header.top{background:var(--tinta);color:#eaf3ee;position:sticky;top:0;z-index:40}
+header.top .wrap{display:flex;align-items:center;gap:14px;height:60px}
+.brand{display:flex;align-items:center;gap:11px;font-family:Inter,sans-serif;font-size:19px;font-weight:700;color:#fff;letter-spacing:-.02em}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(150deg,var(--musgo-cl),var(--musgo));display:grid;place-items:center;color:#fff;font-weight:600;font-family:Inter;font-size:15px}
+.brand small{display:block;font-family:Inter;font-size:11px;color:#9cc3b2;font-weight:500;letter-spacing:.02em;margin-top:1px}
+.top .sp{flex:1}
+.top .who{font-size:13px;color:#a9cabb}
+.btn-sair{background:transparent;border:1px solid #3a5a4c;color:#cfe4d9;padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer}
+.btn-sair:hover{background:#1c3a2f}
+
+/* ---------- botões ---------- */
+.btn{font:inherit;font-weight:600;font-size:15px;border:none;border-radius:var(--r-sm);padding:12px 18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:filter .12s,background .12s,border-color .12s;line-height:1.1}
+.btn.primary{background:var(--musgo);color:#fff}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.dark{background:var(--tinta);color:#fff}
+.btn.dark:hover{background:var(--tinta-2)}
+.btn.ghost{background:var(--branco);color:var(--tinta);border:1px solid var(--linha)}
+.btn.ghost:hover{border-color:var(--musgo);color:var(--musgo)}
+.btn.sm{padding:8px 13px;font-size:13.5px;border-radius:8px}
+.btn.danger{background:var(--alerta);color:#fff}
+.btn.danger:hover{filter:brightness(1.06)}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-link{background:none;border:none;color:var(--musgo);font:inherit;font-weight:600;cursor:pointer;padding:0}
+.btn-voltar{background:none;border:none;color:var(--suave);font:inherit;font-size:14px;cursor:pointer;padding:6px 0;display:inline-flex;align-items:center;gap:6px}
+.btn-voltar:hover{color:var(--tinta)}
+
+/* ---------- cartões ---------- */
+.card{background:var(--papel);border:1px solid var(--linha);border-radius:var(--r);box-shadow:var(--sombra)}
+.card.pad{padding:22px}
+.painel{background:var(--branco);border:1px solid var(--linha);border-radius:var(--r);padding:20px;box-shadow:var(--sombra)}
+
+/* ---------- formulários ---------- */
+label.f{display:block;font-size:13.5px;font-weight:600;color:var(--tinta);margin:0 0 6px}
+.hint{font-size:12.5px;color:var(--suave);font-weight:400;margin-top:-2px;margin-bottom:6px}
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel],input[type=password],input[type=month],select,textarea{
+  width:100%;font:inherit;font-size:15px;color:var(--texto);background:var(--branco);
+  border:1px solid var(--linha);border-radius:9px;padding:11px 12px;transition:border-color .12s,box-shadow .12s}
+textarea{resize:vertical;min-height:80px;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--musgo);box-shadow:0 0 0 3px rgba(47,107,83,.14)}
+select{appearance:none;background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235c6b63' d='M6 8 0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
+.field{margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:620px){.grid2,.grid3{grid-template-columns:1fr}}
+fieldset{border:none;margin:0 0 18px}
+.blocotitulo{font-family:Inter,sans-serif;font-weight:700;font-size:17px;color:var(--tinta);margin:26px 0 4px;padding-bottom:8px;border-bottom:1px solid var(--linha)}
+.blocotitulo:first-child{margin-top:0}
+.blocosub{font-size:13px;color:var(--suave);margin:0 0 16px}
+
+/* chips de seleção (checkbox/radio custom) */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative;display:inline-flex;align-items:center;gap:7px;font-size:14px;padding:8px 13px;border:1px solid var(--linha);border-radius:999px;background:var(--branco);cursor:pointer;user-select:none;transition:all .12s}
+.chip input{position:absolute;opacity:0;inset:0;cursor:pointer;margin:0}
+.chip:hover{border-color:var(--musgo-cl)}
+.chip.on{background:var(--ok-bg);border-color:var(--musgo);color:var(--tinta);font-weight:600}
+.chip .dot{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--linha);display:grid;place-items:center;flex:none;transition:all .12s}
+.chip.radio .dot{border-radius:999px}
+.chip.on .dot{background:var(--musgo);border-color:var(--musgo)}
+.chip.on .dot::after{content:"";width:6px;height:6px;background:#fff;border-radius:1px;display:block}
+.chip.radio.on .dot::after{border-radius:999px}
+
+/* estado (bem/regular/atenção) */
+.estado{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.estado.q4{grid-template-columns:1fr 1fr}
+.estado label{display:flex;align-items:center;justify-content:center;text-align:center;padding:11px 8px;border:1px solid var(--linha);border-radius:9px;background:var(--branco);cursor:pointer;font-size:13.5px;font-weight:500;transition:all .12s}
+.estado label:hover{border-color:var(--musgo-cl)}
+.estado input{display:none}
+.estado label.e-ok.on{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);font-weight:600}
+.estado label.e-med.on{background:var(--atencao-bg);border-color:var(--atencao);color:var(--atencao);font-weight:600}
+.estado label.e-bad.on{background:var(--alerta-bg);border-color:var(--alerta);color:var(--alerta);font-weight:600}
+
+/* ---------- tabelas / listas ---------- */
+table.dt{width:100%;border-collapse:collapse;font-size:14px}
+table.dt th{text-align:left;font-weight:600;color:var(--suave);font-size:12px;letter-spacing:.02em;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--linha)}
+table.dt td{padding:10px;border-bottom:1px solid var(--linha-2);vertical-align:middle}
+table.dt tr:last-child td{border-bottom:none}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px}
+.tag.ativo{background:var(--ok-bg);color:var(--ok)}
+.tag.inativo{background:#eee;color:#777}
+.tag.alerta{background:var(--alerta-bg);color:var(--alerta)}
+.tag.aten{background:var(--atencao-bg);color:var(--atencao)}
+.codepill{font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:600;letter-spacing:.08em;background:var(--tinta);color:#fff;padding:4px 10px;border-radius:7px;display:inline-block}
+.copy{background:none;border:1px solid var(--linha);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer;color:var(--suave)}
+.copy:hover{border-color:var(--musgo);color:var(--musgo)}
+
+/* ---------- telas ---------- */
+.screen{display:none;padding:26px 0 60px;animation:fade .2s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- porta de entrada ---------- */
+.entrada{min-height:calc(100dvh - 60px);display:flex;flex-direction:column;justify-content:center;padding:40px 0}
+.marca-topo{display:flex;align-items:center;gap:13px;margin-bottom:30px}
+.marca-mark{width:46px;height:46px;border-radius:12px;background:var(--musgo);color:#fff;display:grid;place-items:center;font-weight:800;font-size:23px}
+.marca-nome{font-size:22px;font-weight:700;color:var(--tinta);letter-spacing:-.02em;line-height:1.1}
+.marca-sub{font-size:13.5px;color:var(--suave)}
+.portas{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:620px){.portas{grid-template-columns:1fr}}
+.porta{text-align:left;background:var(--papel);border:1px solid var(--linha);border-radius:var(--r);padding:20px;cursor:pointer;transition:all .14s;box-shadow:var(--sombra)}
+.porta:hover{border-color:var(--musgo);transform:translateY(-2px)}
+.porta .ic{width:38px;height:38px;border-radius:10px;background:var(--ok-bg);display:grid;place-items:center;margin-bottom:12px}
+.porta h3{font-size:19px;margin-bottom:3px}
+.porta p{font-size:13.5px;color:var(--suave)}
+.porta.emp{background:var(--tinta);border-color:var(--tinta)}
+.porta.emp h3{color:#fff}.porta.emp p{color:#a9cabb}
+.porta.emp .ic{background:#26493b}
+
+/* toast */
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--tinta);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:all .25s;z-index:90;box-shadow:0 10px 30px rgba(0,0,0,.2);max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{background:var(--alerta)}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(15,25,20,.5);display:none;align-items:center;justify-content:center;z-index:80;padding:18px}
+.modal-bg.show{display:flex}
+.modal{background:var(--papel);border-radius:var(--r);max-width:440px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h3{font-size:20px;margin-bottom:8px}
+.modal p{font-size:14.5px;color:var(--suave);margin-bottom:20px}
+.modal .row{display:flex;gap:10px;justify-content:flex-end}
+
+/* diversos */
+.muted{color:var(--suave)}
+.small{font-size:13px}
+.mt8{margin-top:8px}.mt16{margin-top:16px}.mt24{margin-top:24px}
+.right{text-align:right}
+.center{text-align:center}
+.flex{display:flex;align-items:center;gap:10px}
+.flex.wrap{flex-wrap:wrap}
+.sp{flex:1}
+.divider{height:1px;background:var(--linha);margin:18px 0}
+.aviso{background:var(--atencao-bg);border:1px solid #e6cf9a;border-radius:10px;padding:12px 14px;font-size:13.5px;color:#6b5416}
+.legal{font-size:12px;color:var(--suave);line-height:1.6;background:var(--linha-2);border-radius:10px;padding:14px 16px;margin-top:20px}
+.pill-reg{font-size:12px;color:var(--suave);border:1px solid var(--linha);border-radius:999px;padding:3px 10px}
+.empty{text-align:center;padding:40px 20px;color:var(--suave)}
+.empty h3{color:var(--tinta);margin-bottom:6px;font-size:18px}
+.subnav{display:flex;gap:4px;background:var(--linha-2);padding:4px;border-radius:11px;margin-bottom:20px;overflow-x:auto}
+.subnav button{flex:1;white-space:nowrap;background:none;border:none;font:inherit;font-size:14px;font-weight:600;color:var(--suave);padding:9px 14px;border-radius:8px;cursor:pointer}
+.subnav button.on{background:var(--branco);color:var(--tinta);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.kv{display:flex;font-size:14px;padding:6px 0;border-bottom:1px solid var(--linha-2);gap:12px}
+.kv:last-child{border:none}
+.kv .k{color:var(--suave);min-width:130px;flex:none}
+.kv .v{color:var(--texto);font-weight:500}
+.med-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--linha);border-radius:10px;background:var(--branco);margin-bottom:8px}
+.med-check{width:26px;height:26px;border-radius:7px;border:2px solid var(--linha);flex:none;cursor:pointer;display:grid;place-items:center;transition:all .12s}
+.med-check.on{background:var(--musgo);border-color:var(--musgo)}
+.med-check.on::after{content:"";width:9px;height:14px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg) translateY(-1px)}
+.diario-card{border:1px solid var(--linha);border-radius:12px;padding:16px;margin-bottom:12px;background:var(--branco)}
+.diario-card .d-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.diario-card .d-data{font-weight:600;color:var(--tinta)}
+.badge-est{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px}
+.linha-est{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;margin-bottom:8px}
+.linha-est span b{color:var(--suave);font-weight:500}
+.vitais{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;padding:8px 0;border-top:1px solid var(--linha-2);border-bottom:1px solid var(--linha-2);margin:8px 0}
+.vitais b{font-family:ui-monospace,monospace;color:var(--tinta)}
+</style>
+</head>
+<body>
+
+<header class="top" id="topbar" style="display:none">
+  <div class="wrap">
+    <div class="brand"><span class="mark">D</span><div>Dedica Saúde<small id="ctx-papel">Sistema de Cuidado</small></div></div>
+    <div class="sp"></div>
+    <span class="who" id="ctx-who"></span>
+    <button class="btn-sair" onclick="sair()">Sair</button>
+  </div>
+</header>
+
+<main class="wrap" id="app"><!-- telas injetadas --></main>
+
+<div id="toast"></div>
+<div class="modal-bg" id="modalbg"><div class="modal" id="modalbox"></div></div>
+
+<script>
+/* ================= CONFIG SUPABASE ================= */
+const SB_URL = "https://txvrotvqekfimlrqpwly.supabase.co";
+const SB_KEY = "sb_publishable_zfbeBwOpHzdZLT1p33iwiw_TKerr_tE";
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+/* chamada a RPC com tratamento */
+async function rpc(fn, args={}){
+  const {data,error} = await sb.rpc(fn,args);
+  if(error){console.error('RPC',fn,error);throw new Error(error.message||error.hint||error.details||('Falha em '+fn));}
+  return data;
+}
+
+/* ================= UTIL UI ================= */
+const $ = s=>document.querySelector(s);
+const app = $('#app');
+let toastT;
+function toast(msg,err=false){const t=$('#toast');t.textContent=msg;t.className=err?'err show':'show';clearTimeout(toastT);toastT=setTimeout(()=>t.className=t.className.replace('show',''),2600);}
+function esc(s){return (s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function copiar(txt){navigator.clipboard.writeText(txt).then(()=>toast('Copiado: '+txt));}
+function idade(nasc){if(!nasc)return'';const d=new Date(nasc);if(isNaN(d))return'';const h=new Date();let a=h.getFullYear()-d.getFullYear();const m=h.getMonth()-d.getMonth();if(m<0||(m===0&&h.getDate()<d.getDate()))a--;return a>=0&&a<130?a+' anos':'';}
+function hojeISO(){return new Date().toISOString().slice(0,10);}
+function fmtData(iso){if(!iso)return'';const [y,m,d]=iso.slice(0,10).split('-');return `${d}/${m}/${y}`;}
+
+function confirmar(titulo,texto,onSim,rotuloSim='Confirmar',perigo=true){
+  $('#modalbox').innerHTML=`<h3>${esc(titulo)}</h3><p>${esc(texto)}</p>
+    <div class="row"><button class="btn ghost sm" onclick="fecharModal()">Cancelar</button>
+    <button class="btn ${perigo?'danger':'primary'} sm" id="mok">${esc(rotuloSim)}</button></div>`;
+  $('#modalbg').classList.add('show');
+  $('#mok').onclick=()=>{fecharModal();onSim();};
+}
+function fecharModal(){$('#modalbg').classList.remove('show');}
+$('#modalbg').addEventListener('click',e=>{if(e.target.id==='modalbg')fecharModal();});
+
+/* navegação de telas: cada tela é uma função que devolve HTML */
+let sessao = {papel:null, codigo:null, cliente:null, admin:null, prof_nome:null};
+
+function setTopbar(papel,who){
+  $('#topbar').style.display = papel? 'block':'none';
+  $('#ctx-papel').textContent = papel||'Sistema de Cuidado';
+  $('#ctx-who').textContent = who||'';
+}
+async function sair(){
+  if(sessao.admin){try{await sb.auth.signOut();}catch(e){}}
+  sessao={papel:null,codigo:null,cliente:null,admin:null,prof_nome:null};
+  setTopbar(null);
+  telaInicial();
+  window.scrollTo(0,0);
+}
+function render(html){app.innerHTML=html;window.scrollTo(0,0);}
+
+/* ============ helpers de formulário ============ */
+// grupo de chips (multi) — devolve array marcada
+function chips(name,opcoes,marcadas=[],radio=false){
+  return `<div class="chips" data-chips="${name}" data-radio="${radio?1:0}">`+
+    opcoes.map(o=>{const on=marcadas.includes(o);
+      return `<label class="chip ${radio?'radio':''} ${on?'on':''}">
+        <span class="dot"></span><input type="${radio?'radio':'checkbox'}" name="${name}" value="${esc(o)}" ${on?'checked':''}>
+        ${esc(o)}</label>`;}).join('')+`</div>`;
+}
+// estado bem/regular/atenção
+function estado(name,opts){ // opts: [{v,label,tipo}] tipo: ok|med|bad
+  return `<div class="estado ${opts.length===4?'q4':''}" data-estado="${name}">`+
+    opts.map(o=>`<label class="e-${o.tipo}"><input type="radio" name="${name}" value="${esc(o.v)}">${esc(o.label)}</label>`).join('')+`</div>`;
+}
+// liga interatividade de chips/estado após render
+function ativarControles(scope=document){
+  scope.querySelectorAll('[data-chips] .chip input').forEach(inp=>{
+    inp.onchange=()=>{
+      const grupo=inp.closest('[data-chips]');
+      if(grupo.dataset.radio==='1') grupo.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+      inp.closest('.chip').classList.toggle('on',inp.checked);
+    };
+  });
+  scope.querySelectorAll('[data-estado]').forEach(g=>{
+    g.querySelectorAll('label').forEach(l=>{
+      l.querySelector('input').onchange=()=>{g.querySelectorAll('label').forEach(x=>x.classList.remove('on'));l.classList.add('on');};
+    });
+  });
+}
+function getChips(scope,name){return [...scope.querySelectorAll(`[data-chips="${name}"] input:checked`)].map(i=>i.value);}
+function getEstado(scope,name){const i=scope.querySelector(`[data-estado="${name}"] input:checked`);return i?i.value:null;}
+function val(scope,id){const el=scope.querySelector('#'+id);return el?el.value.trim():'';}
+
+/* ====== catálogos (do documento) ====== */
+const REGIOES=["Zona sul RJ","Zona Norte RJ","Barra da Tijuca e região","Região Serrana","Região dos Lagos","Macaé e região"];
+const ATIVIDADES=["Companhia e supervisão","Auxílio no banho e higiene pessoal","Auxílio para vestir-se","Auxílio na alimentação","Preparo de refeições simples","Auxílio para caminhar e se locomover","Transferência (cama, cadeira, banho etc.)","Troca de fraldas","Lembrete e organização dos horários de medicamentos","Acompanhamento em consultas e exames","Acompanhamento em passeios e atividades externas","Atividades de estímulo e entretenimento","Organização dos itens de uso pessoal","Acompanhamento durante o sono/período noturno"];
+const PERFIL=["Calmo(a) e paciente","Carinhoso(a) e acolhedor(a)","Comunicativo(a) e boa companhia","Discreto(a) e reservado(a)","Atento(a) e observador(a)","Proativo(a)","Organizado(a) e cuidadoso(a) com a rotina","Pontual e comprometido(a)","Firme para lidar com resistência aos cuidados","Experiência com Alzheimer/demência","Experiência com Oncologia","Experiência com Parkinson","Experiência com sondas","Experiência com pós-operatório ortopedia","Experiência com curativos","Experiência com BIPAP ou O2 domiciliar","Experiência com pessoa acamada / mobilidade reduzida","Experiência com banho, fraldas e higiene","Experiência com alimentação e medicamentos","Lida bem com mudanças de humor","Segue orientações da família","Mantém a família informada","Evita uso excessivo de celular","Estimula atividades, conversas e passeios","Experiência comprovada e boas referências"];
+const MOTIVOS=["Companhia e acompanhamento","Auxílio no banho e higiene","Auxílio na alimentação","Auxílio na mobilidade/locomoção","Supervisão e segurança","Acompanhamento de Alzheimer/demência","Recuperação após cirurgia ou internação","Acompanhamento em consultas e atividades externas","Família trabalha/não pode acompanhar durante o dia","Reduzir a sobrecarga da família","Cuidados gerais no dia a dia"];
+const MOTIVO_SAIDA=["Nunca teve cuidador anteriormente","Pedido de desligamento pelo cuidador","Insatisfação da família","Falta de comprometimento/assiduidade","Dificuldade de relacionamento","Conduta inadequada","Falta de experiência ou qualificação","Incompatibilidade com a rotina","Mudança de horário/escala","Questões financeiras","Fim do período contratado"];
+const ATIV_DIA=["Caminhada","Tomou sol","Banho e higiene pessoal","Fisioterapia","Atendimento Médico","Curativo ou home care","Assistiu TV / Ouviu música","Leitura / Jogos / Atividades cognitivas","Passeio","Atividade religiosa","Descansou","Saiu para atividade externa"];
+const REPOR=["Fraldas","Medicamentos","Material de higiene","Alimentos","Material para curativo"];
+const INTERCORRENCIAS=["Queda","Dor","Febre / Mal-estar","Recusa alimentar","Recusa de medicamento","Agitação","Alteração de comportamento","Confusão / Desorientação","Alteração intestinal","Alteração urinária","Dificuldade de locomoção","Lesão / Alteração na pele"];
+
+/* ícones inline (traço, sem emoji) */
+function ic(n){const p={
+  clipboard:'<path d="M9 4h6v3H9zM7 5H5v15h14V5h-2"/>',
+  heart:'<path d="M12 20s-7-4.5-9-9a4.5 4.5 0 0 1 9-1 4.5 4.5 0 0 1 9 1c-2 4.5-9 9-9 9z"/>',
+  file:'<path d="M7 3h7l4 4v14H7zM14 3v4h4"/>',
+  badge:'<circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>',
+  building:'<path d="M4 21V5l8-3 8 3v16M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/>',
+  back:'<path d="M15 18l-6-6 6-6"/>'
+}[n]||'';
+  return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--musgo)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+}
+
+
+/* ==================================================================
+   ACESSO DA ADMINISTRAÇÃO (empresa)
+================================================================== */
+async function telaAdmin(){
+  setTopbar(null);
+  // já logado?
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){
+    try{const ok=await rpc('cuid_sou_admin');if(ok){sessao.admin={nome:session.user.email};painelEmpresa();return;}}catch(e){}
+  }
+  let ha=true; try{ha=await rpc('cuid_ha_admin');}catch(e){}
+  const primeiro=!ha;
+  render(`<section class="screen active"><div class="narrow" style="padding-top:20px">
+    <button class="btn-voltar" onclick="telaInicial()">${ic('back')} Início</button>
+    <div class="painel mt16" id="formAdmin">
+      <div class="flex" style="margin-bottom:14px"><div class="porta emp" style="width:38px;height:38px;padding:0;display:grid;place-items:center;border-radius:10px">${ic('building')}</div>
+      <h2 style="font-size:22px">${primeiro?'Criar acesso da empresa':'Administração'}</h2></div>
+      ${primeiro?`<div class="field"><label class="f">Nome</label><input type="text" id="ad_nome" placeholder="Responsável"></div>`:''}
+      <div class="field"><label class="f">E-mail</label><input type="email" id="ad_user" autocomplete="username" placeholder="voce@dedicasaude.com"></div>
+      <div class="field"><label class="f">Senha</label><input type="password" id="ad_pass" autocomplete="${primeiro?'new-password':'current-password'}"></div>
+      <button class="btn dark wide mt8" id="btnAd" onclick="${primeiro?'criarAdmin()':'loginAdmin()'}">${primeiro?'Criar acesso':'Entrar'}</button>
+    </div></div></section>`);
+}
+async function criarAdmin(){
+  const email=$('#ad_user').value.trim(),p=$('#ad_pass').value,n=$('#ad_nome').value.trim();
+  if(!email||!p){toast('Preencha e-mail e senha',true);return;}
+  if(p.length<6){toast('A senha precisa de ao menos 6 caracteres',true);return;}
+  const b=$('#btnAd');b.disabled=true;b.textContent='Criando…';
+  try{
+    const {error}=await sb.auth.signUp({email,password:p});
+    if(error) throw error;
+    // garante sessão (caso signUp não retorne sessão ativa)
+    if(!(await sb.auth.getSession()).data.session){
+      const {error:e2}=await sb.auth.signInWithPassword({email,password:p}); if(e2) throw e2;
+    }
+    const r=await rpc('cuid_admin_reivindicar',{p_nome:n});
+    if(r.ok){sessao.admin={nome:n||email};painelEmpresa();}
+    else{toast(r.erro,true);b.disabled=false;b.textContent='Criar acesso';}
+  }catch(e){toast(traduzAuth(e.message),true);b.disabled=false;b.textContent='Criar acesso';}
+}
+async function loginAdmin(){
+  const email=$('#ad_user').value.trim(),p=$('#ad_pass').value;
+  if(!email||!p){toast('Preencha e-mail e senha',true);return;}
+  const b=$('#btnAd');b.disabled=true;b.textContent='Entrando…';
+  try{
+    const {error}=await sb.auth.signInWithPassword({email,password:p});
+    if(error) throw error;
+    const ok=await rpc('cuid_sou_admin');
+    if(ok){sessao.admin={nome:email};painelEmpresa();}
+    else{await sb.auth.signOut();toast('Este acesso não é da administração',true);b.disabled=false;b.textContent='Entrar';}
+  }catch(e){toast(traduzAuth(e.message),true);b.disabled=false;b.textContent='Entrar';}
+}
+function traduzAuth(m){
+  m=(m||'').toLowerCase();
+  if(m.includes('invalid login'))return'E-mail ou senha inválidos';
+  if(m.includes('already registered')||m.includes('already been'))return'Este e-mail já tem acesso. Use Entrar.';
+  if(m.includes('password'))return'Senha inválida (mínimo 6 caracteres)';
+  return 'Não foi possível autenticar';
+}
+
+/* ==================================================================
+   PAINEL DA EMPRESA
+================================================================== */
+let cacheClientes=[], cacheProfs=[];
+async function painelEmpresa(){
+  setTopbar('Administração', sessao.admin?.nome||sessao.admin?.usuario||'');
+  render(`<section class="screen active">
+    <div class="subnav">
+      <button class="on" data-tab="clientes" onclick="empTab('clientes')">Clientes</button>
+      <button data-tab="profs" onclick="empTab('profs')">Profissionais</button>
+      <button data-tab="oport" onclick="empTab('oport')">Oportunidades</button>
+    </div>
+    <div id="emp-body"><p class="muted">Carregando…</p></div>
+  </section>`);
+  empTab('clientes');
+}
+function empTab(t){
+  document.querySelectorAll('.subnav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  if(t==='clientes')empClientes();
+  if(t==='profs')empProfs();
+  if(t==='oport')empOportunidades();
+}
+async function empClientes(){
+  const body=$('#emp-body');body.innerHTML=`<p class="muted">Carregando clientes…</p>`;
+  try{
+    cacheClientes=await rpc('cuid_admin_listar_clientes');
+    if(!cacheClientes.length){body.innerHTML=`<div class="painel empty"><h3>Nenhum cliente ainda</h3><p>Os cadastros enviados pela ficha aparecem aqui para você liberar.</p></div>`;return;}
+    const ativos=cacheClientes.filter(c=>c.ativo), pend=cacheClientes.filter(c=>!c.ativo);
+    let h='';
+    if(pend.length){h+=`<div class="painel" style="margin-bottom:16px;border-color:#e6cf9a">
+      <h3 style="font-size:18px">Aguardando liberação (${pend.length})</h3>
+      <table class="dt"><tbody>${pend.map(c=>`<tr>
+        <td><b>${esc(c.assistido_nome)}</b><br><span class="muted small">${esc(c.regiao||'')} · ${esc(c.periodo||'')}</span></td>
+        <td class="right"><button class="btn primary sm" onclick="liberarCliente('${c.id}')">Liberar</button>
+        <button class="btn ghost sm" onclick="verCliente('${c.id}')">Ver ficha</button></td></tr>`).join('')}</tbody></table></div>`;}
+    h+=`<div class="painel"><h3 style="font-size:18px">Clientes ativos (${ativos.length})</h3>
+      <table class="dt"><thead><tr><th>Assistido</th><th>Região</th><th>Período</th><th></th></tr></thead><tbody>
+      ${ativos.map(c=>`<tr>
+        <td><b>${esc(c.assistido_nome)}</b></td><td>${esc(c.regiao||'—')}</td><td>${esc(c.periodo||'—')}</td>
+        <td class="right"><button class="btn dark sm" onclick="gerirCliente('${c.id}')">Gerenciar</button></td></tr>`).join('')||'<tr><td colspan="4" class="muted">Nenhum ativo</td></tr>'}
+      </tbody></table></div>`;
+    body.innerHTML=h;
+  }catch(e){body.innerHTML=`<div class="painel empty"><h3>Erro</h3><p>${esc(e.message)}</p></div>`;}
+}
+function liberarCliente(id){
+  const c=cacheClientes.find(x=>x.id===id);
+  confirmar('Liberar cliente',`Liberar "${c.assistido_nome}"? O sistema vai gerar os códigos de cuidador e de parente para esta casa.`,async()=>{
+    try{await rpc('cuid_admin_set_cliente_ativo',{p_id:id,p_ativo:true});toast('Cliente liberado');empClientes();}
+    catch(e){toast(e.message,true);}
+  },'Liberar',false);
+}
+function verCliente(id){gerirCliente(id,true);}
+
+async function gerirCliente(id, soFicha=false){
+  const c=cacheClientes.find(x=>x.id===id);if(!c)return;
+  setTopbar('Administração', c.assistido_nome);
+  render(`<section class="screen active">
+    <button class="btn-voltar" onclick="painelEmpresa()">${ic('back')} Clientes</button>
+    <h2 style="font-size:24px;margin-top:10px">${esc(c.assistido_nome)}</h2>
+    <p class="muted small" style="margin-bottom:14px">${esc([c.end_rua,c.end_numero,c.end_bairro,c.end_municipio].filter(Boolean).join(', '))}</p>
+    ${c.ativo?`<div class="painel" style="margin-bottom:16px">
+      <h3 style="font-size:17px">Códigos de acesso da casa</h3>
+      <div class="grid2">
+        <div><div class="small muted">Cuidador (registra)</div><div class="flex mt8"><span class="codepill">${esc(c.codigo_cuidador)}</span><button class="copy" onclick="copiar('${c.codigo_cuidador}')">Copiar</button></div></div>
+        <div><div class="small muted">Parente (acompanha)</div><div class="flex mt8"><span class="codepill">${esc(c.codigo_parente)}</span><button class="copy" onclick="copiar('${c.codigo_parente}')">Copiar</button></div></div>
+      </div></div>`:`<div class="aviso" style="margin-bottom:16px">Cliente ainda não liberado. <button class="btn-link" onclick="liberarCliente('${c.id}')">Liberar agora</button></div>`}
+    <div class="subnav">
+      <button class="on" data-t="agenda" onclick="cliTab('${id}','agenda')">Agenda</button>
+      <button data-t="med" onclick="cliTab('${id}','med')">Medicação</button>
+      <button data-t="vinc" onclick="cliTab('${id}','vinc')">Cuidadores</button>
+      <button data-t="ficha" onclick="cliTab('${id}','ficha')">Ficha</button>
+    </div>
+    <div id="cli-body"></div>
+  </section>`);
+  cliTab(id, soFicha?'ficha':'agenda');
+}
+function cliTab(id,t){
+  document.querySelectorAll('.subnav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  if(t==='agenda')cliAgenda(id);
+  if(t==='med')cliMed(id);
+  if(t==='vinc')cliVinc(id);
+  if(t==='ficha')cliFicha(id);
+}
+
+/* --- Agenda do cliente (a planilha) --- */
+async function cliAgenda(id){
+  const body=$('#cli-body');body.innerHTML=`<p class="muted">Carregando agenda…</p>`;
+  try{
+    const pl = await rpc('cuid_admin_listar_plantoes',{p_cliente:id});
+    let totP=0,totE=0;pl.forEach(p=>{totP+=Number(p.vlr_profissional||0);totE+=Number(p.vlr_empresa||0);});
+    body.innerHTML=`<div class="painel">
+      <div class="flex" style="margin-bottom:12px"><h3 style="font-size:18px">Agenda de plantões</h3><div class="sp"></div>
+        <button class="btn primary sm" onclick="addPlantao('${id}')">+ Adicionar plantão</button></div>
+      ${pl.length?`<div style="overflow-x:auto"><table class="dt"><thead><tr><th>Data</th><th>Profissional</th><th>Horário</th><th class="right">Prof.</th><th class="right">Empr.</th><th></th></tr></thead><tbody>
+        ${pl.map(p=>`<tr>
+          <td>${fmtData(p.data)}</td>
+          <td>${esc(p.prof_nome||'—')}${p.prof_telefone?`<br><span class="muted small">${esc(p.prof_telefone)}</span>`:''}${p.status==='cancelado'?' <span class="tag alerta">cancelado</span>':''}</td>
+          <td>${esc(p.horario||'')}</td>
+          <td class="right">${p.vlr_profissional?('R$ '+fmtNum(p.vlr_profissional)):'—'}</td>
+          <td class="right">${p.vlr_empresa?('R$ '+fmtNum(p.vlr_empresa)):'—'}</td>
+          <td class="right"><button class="btn-link small" onclick="delPlantao('${p.id}','${id}')">excluir</button></td></tr>`).join('')}
+        <tr style="font-weight:600"><td colspan="3" class="right">Totais</td><td class="right">R$ ${fmtNum(totP)}</td><td class="right">R$ ${fmtNum(totE)}</td><td></td></tr>
+        </tbody></table></div>`:`<div class="empty"><h3>Sem plantões</h3><p>Adicione o primeiro plantão desta casa.</p></div>`}
+    </div>`;
+  }catch(e){body.innerHTML=`<div class="painel empty"><h3>Erro</h3><p>${esc(e.message)}</p></div>`;}
+}
+function fmtNum(n){return Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+async function addPlantao(id){
+  let profs=cacheProfs;if(!profs.length){try{profs=cacheProfs=await rpc('cuid_admin_listar_profissionais');}catch(e){}}
+  const opts=`<option value="">— avulso (digitar nome) —</option>`+profs.filter(p=>p.ativo).map(p=>`<option value="${p.id}">${esc(p.nome)}</option>`).join('');
+  $('#modalbox').innerHTML=`<h3>Novo plantão</h3>
+    <div class="field"><label class="f">Profissional cadastrado</label><select id="mp_prof">${opts}</select></div>
+    <div class="field"><label class="f">Ou nome avulso</label><input type="text" id="mp_nome" placeholder="Nome do profissional"></div>
+    <div class="grid2"><div class="field"><label class="f">Data</label><input type="date" id="mp_data" value="${hojeISO()}"></div>
+    <div class="field"><label class="f">Horário</label><input type="text" id="mp_hora" value="09:00 às 09:00"></div></div>
+    <div class="grid2"><div class="field"><label class="f">Valor profissional</label><input type="number" id="mp_vp" step="0.01" placeholder="220"></div>
+    <div class="field"><label class="f">Valor empresa</label><input type="number" id="mp_ve" step="0.01" placeholder="25"></div></div>
+    <div class="row"><button class="btn ghost sm" onclick="fecharModal()">Cancelar</button>
+    <button class="btn primary sm" id="mp_ok">Adicionar</button></div>`;
+  $('#modalbg').classList.add('show');
+  $('#mp_ok').onclick=async()=>{
+    const data=$('#mp_data').value;if(!data){toast('Informe a data',true);return;}
+    const p={cliente_id:id,profissional_id:$('#mp_prof').value,prof_nome:$('#mp_nome').value.trim(),
+      data,horario:$('#mp_hora').value.trim(),vlr_profissional:$('#mp_vp').value,vlr_empresa:$('#mp_ve').value};
+    try{await rpc('cuid_admin_add_plantao',{p});fecharModal();toast('Plantão adicionado');cliAgenda(id);}catch(e){toast(e.message,true);}
+  };
+}
+function delPlantao(pid,id){confirmar('Excluir plantão','Remover este plantão da agenda?',async()=>{
+  try{await rpc('cuid_admin_del_plantao',{p_id:pid});toast('Plantão removido');cliAgenda(id);}catch(e){toast(e.message,true);}});}
+
+/* --- Medicação (empresa cadastra) --- */
+async function cliMed(id){
+  const body=$('#cli-body');body.innerHTML=`<p class="muted">Carregando…</p>`;
+  const c=cacheClientes.find(x=>x.id===id);
+  try{
+    const meds = c.ativo? await rpc('cuid_plano_medicamentos',{p_codigo:c.codigo_cuidador}) : [];
+    body.innerHTML=`<div class="painel">
+      <div class="flex" style="margin-bottom:12px"><h3 style="font-size:18px">Rotina de medicamentos</h3><div class="sp"></div>
+        <button class="btn primary sm" onclick="addMed('${id}')">+ Medicamento</button></div>
+      ${meds.length?meds.map(m=>`<div class="med-item"><div><b>${esc(m.nome)}</b>${m.dose?' · '+esc(m.dose):''}${m.via?' · '+esc(m.via):''}
+        <br><span class="muted small">${esc((m.horarios||[]).join(', ')||'sem horário')}</span></div><div class="sp"></div>
+        <button class="btn-link small" onclick="delMed('${m.id}','${id}')">remover</button></div>`).join('')
+        :`<div class="empty"><h3>Sem medicação</h3><p>${c.ativo?'Adicione os medicamentos da prescrição.':'Libere o cliente para cadastrar a medicação.'}</p></div>`}
+    </div>`;
+  }catch(e){body.innerHTML=`<div class="painel empty"><h3>Erro</h3><p>${esc(e.message)}</p></div>`;}
+}
+function addMed(id){
+  $('#modalbox').innerHTML=`<h3>Novo medicamento</h3>
+    <div class="field"><label class="f">Nome</label><input type="text" id="md_nome"></div>
+    <div class="grid2"><div class="field"><label class="f">Dose</label><input type="text" id="md_dose" placeholder="ex: 1 comp"></div>
+    <div class="field"><label class="f">Via</label><input type="text" id="md_via" placeholder="Oral"></div></div>
+    <div class="field"><label class="f">Horários (separe por vírgula)</label><input type="text" id="md_hor" placeholder="08:00, 14:00, 20:00"></div>
+    <div class="field"><label class="f">Observação</label><input type="text" id="md_obs"></div>
+    <div class="row"><button class="btn ghost sm" onclick="fecharModal()">Cancelar</button><button class="btn primary sm" id="md_ok">Adicionar</button></div>`;
+  $('#modalbg').classList.add('show');
+  $('#md_ok').onclick=async()=>{
+    const nome=$('#md_nome').value.trim();if(!nome){toast('Informe o nome',true);return;}
+    const hor=$('#md_hor').value.split(',').map(x=>x.trim()).filter(Boolean);
+    const p={cliente_id:id,nome,dose:$('#md_dose').value.trim(),via:$('#md_via').value.trim(),horarios:hor,observacao:$('#md_obs').value.trim()};
+    try{await rpc('cuid_admin_add_medicamento',{p});fecharModal();toast('Medicamento adicionado');cliMed(id);}catch(e){toast(e.message,true);}
+  };
+}
+function delMed(mid,id){confirmar('Remover medicamento','Remover este medicamento da rotina?',async()=>{
+  try{await rpc('cuid_admin_del_medicamento',{p_id:mid});toast('Removido');cliMed(id);}catch(e){toast(e.message,true);}});}
+
+/* --- Vínculos de cuidadores --- */
+async function cliVinc(id){
+  const body=$('#cli-body');body.innerHTML=`<p class="muted">Carregando…</p>`;
+  try{
+    if(!cacheProfs.length)cacheProfs=await rpc('cuid_admin_listar_profissionais');
+    const vin=await rpc('cuid_admin_listar_vinculos',{p_cliente:id});
+    const vinIds=new Set(vin.filter(v=>v.ativo).map(v=>v.profissional_id));
+    const disp=cacheProfs.filter(p=>p.ativo && !vinIds.has(p.id));
+    body.innerHTML=`<div class="painel">
+      <h3 style="font-size:18px">Cuidadores desta casa</h3>
+      ${vin.filter(v=>v.ativo).length?`<table class="dt"><tbody>${vin.filter(v=>v.ativo).map(v=>`<tr>
+        <td><b>${esc(v.nome)}</b>${v.celular?`<br><span class="muted small">${esc(v.celular)}</span>`:''}</td>
+        <td class="right"><button class="btn-link small" onclick="desvincular('${id}','${v.profissional_id}')">remover acesso</button></td></tr>`).join('')}</tbody></table>`
+        :`<p class="muted small">Nenhum cuidador vinculado ainda.</p>`}
+      <div class="divider"></div>
+      <label class="f">Vincular cuidador cadastrado</label>
+      <div class="flex"><select id="vsel" style="flex:1"><option value="">Selecione…</option>${disp.map(p=>`<option value="${p.id}">${esc(p.nome)}</option>`).join('')}</select>
+      <button class="btn primary sm" onclick="vincular('${id}')">Vincular</button></div>
+    </div>`;
+  }catch(e){body.innerHTML=`<div class="painel empty"><h3>Erro</h3><p>${esc(e.message)}</p></div>`;}
+}
+async function vincular(id){const pid=$('#vsel').value;if(!pid){toast('Selecione um cuidador',true);return;}
+  try{await rpc('cuid_admin_vincular',{p_cliente:id,p_profissional:pid});toast('Cuidador vinculado');cliVinc(id);}catch(e){toast(e.message,true);}}
+function desvincular(id,pid){confirmar('Remover acesso','O cuidador perderá o acesso ao plano desta casa. Confirmar?',async()=>{
+  try{await rpc('cuid_admin_desvincular',{p_cliente:id,p_profissional:pid});toast('Acesso removido');cliVinc(id);}catch(e){toast(e.message,true);}});}
+
+/* --- Ficha completa --- */
+function cliFicha(id){
+  const c=cacheClientes.find(x=>x.id===id);const body=$('#cli-body');
+  const kv=(k,v)=>v?`<div class="kv"><span class="k">${k}</span><span class="v">${esc(Array.isArray(v)?v.join(', '):v)}</span></div>`:'';
+  body.innerHTML=`<div class="painel">
+    <h3 style="font-size:18px">Assistido</h3>
+    ${kv('Nascimento',c.assistido_nasc?fmtData(c.assistido_nasc)+(idade(c.assistido_nasc)?' ('+idade(c.assistido_nasc)+')':''):'')}
+    ${kv('Peso / Altura',[c.assistido_peso&&c.assistido_peso+' kg',c.assistido_altura&&c.assistido_altura+' m'].filter(Boolean).join(' · '))}
+    ${kv('Telefone',c.telefone)}${kv('Ponto de referência',c.ponto_referencia)}
+    ${kv('Reside com',c.reside_com)}${kv('Animais',c.animais)}
+    ${kv('Doenças',c.doencas)}${kv('Lucidez',c.lucidez)}${kv('Comunicação',c.comunicacao)}
+    ${kv('Comportamento',c.comportamento)}${kv('Sono',c.sono)}${kv('Alimentação',c.alimentacao)}
+    ${kv('Locomoção',c.locomocao)}${kv('Medicação',c.medicacao)}${kv('Banho',c.banho)}${kv('Fraldas',c.fraldas)}
+    <h3 style="font-size:18px;margin-top:20px">Serviço</h3>
+    ${kv('Período',c.periodo)}${kv('Vestimenta',c.vestimenta)}${kv('Fornece alimentação',c.fornece_alimentacao===true?'Sim':c.fornece_alimentacao===false?'Não':'')}
+    ${kv('Motivos',c.motivos_solicitacao)}${kv('Atividades',c.atividades_cuidador)}
+    <h3 style="font-size:18px;margin-top:20px">Seleção (interno)</h3>
+    ${kv('Perfil ideal',c.perfil_ideal)}${kv('Motivo saída anterior',c.motivo_saida_ultimo)}${kv('Não aceita / obs',c.nao_aceita)}
+    <h3 style="font-size:18px;margin-top:20px">Contratante</h3>
+    ${kv('Nome',c.contr_nome)}${kv('CPF',c.contr_cpf)}${kv('RG',c.contr_rg)}
+    ${kv('Endereço',[c.contr_endereco,c.contr_bairro,c.contr_cep].filter(Boolean).join(', '))}
+    ${kv('E-mail',c.contr_email)}${kv('Profissão',c.contr_profissao)}${kv('Telefones',c.contr_telefones)}
+  </div>`;
+}
+
+/* --- Profissionais --- */
+async function empProfs(){
+  const body=$('#emp-body');body.innerHTML=`<p class="muted">Carregando profissionais…</p>`;
+  try{
+    cacheProfs=await rpc('cuid_admin_listar_profissionais');
+    if(!cacheProfs.length){body.innerHTML=`<div class="painel empty"><h3>Nenhum profissional</h3><p>Os cadastros profissionais aparecem aqui.</p></div>`;return;}
+    const pend=cacheProfs.filter(p=>!p.ativo),ativ=cacheProfs.filter(p=>p.ativo);
+    let h='';
+    if(pend.length){h+=`<div class="painel" style="margin-bottom:16px;border-color:#e6cf9a"><h3 style="font-size:18px">Aguardando documentos (${pend.length})</h3>
+      <table class="dt"><tbody>${pend.map(p=>`<tr><td><b>${esc(p.nome)}</b><br><span class="muted small">${esc(p.formacao||'')} · ${esc((p.regioes_atende||[]).join(', '))}</span></td>
+      <td class="right"><button class="btn primary sm" onclick="ativarProf('${p.id}')">Ativar</button>
+      <button class="btn ghost sm" onclick="verProf('${p.id}')">Ver</button></td></tr>`).join('')}</tbody></table></div>`;}
+    h+=`<div class="painel"><h3 style="font-size:18px">Profissionais ativos (${ativ.length})</h3>
+      <table class="dt"><thead><tr><th>Nome</th><th>Formação</th><th>Regiões</th><th></th></tr></thead><tbody>
+      ${ativ.map(p=>`<tr><td><b>${esc(p.nome)}</b><br><span class="muted small">${esc(p.celular||'')}</span></td>
+        <td>${esc(p.formacao||'—')}</td><td class="small">${esc((p.regioes_atende||[]).join(', ')||'—')}</td>
+        <td class="right"><button class="btn ghost sm" onclick="verProf('${p.id}')">Ver</button></td></tr>`).join('')||'<tr><td colspan="4" class="muted">Nenhum</td></tr>'}
+      </tbody></table></div>`;
+    body.innerHTML=h;
+  }catch(e){body.innerHTML=`<div class="painel empty"><h3>Erro</h3><p>${esc(e.message)}</p></div>`;}
+}
+function ativarProf(id){const p=cacheProfs.find(x=>x.id===id);
+  confirmar('Ativar profissional',`Ativar "${p.nome}"? Poderá ser vinculado a clientes.`,async()=>{
+    try{await rpc('cuid_admin_set_profissional_ativo',{p_id:id,p_ativo:true});toast('Profissional ativado');empProfs();}catch(e){toast(e.message,true);}
+  },'Ativar',false);}
+function verProf(id){const p=cacheProfs.find(x=>x.id===id);setTopbar('Administração',p.nome);
+  const kv=(k,v)=>v!==''&&v!=null&&!(Array.isArray(v)&&!v.length)?`<div class="kv"><span class="k">${k}</span><span class="v">${esc(Array.isArray(v)?v.join(', '):v)}</span></div>`:'';
+  render(`<section class="screen active"><button class="btn-voltar" onclick="painelEmpresa();setTimeout(()=>empTab('profs'),0)">${ic('back')} Profissionais</button>
+    <h2 style="font-size:24px;margin-top:10px">${esc(p.nome)}</h2>
+    <p class="muted small" style="margin-bottom:14px">${esc(p.codigo_profissional)} · ${p.ativo?'<span class="tag ativo">ativo</span>':'<span class="tag inativo">aguardando</span>'}</p>
+    <div class="painel">
+      ${kv('Nascimento',p.data_nasc?fmtData(p.data_nasc)+(idade(p.data_nasc)?' ('+idade(p.data_nasc)+')':''):'')}
+      ${kv('CPF',p.cpf)}${kv('CNPJ',p.cnpj)}${kv('E-mail',p.email)}${kv('Celular',p.celular)}${kv('Recado',p.celular_recado)}
+      ${kv('Endereço',p.endereco)}${kv('Escolaridade',p.escolaridade)}${kv('Formação',p.formacao)}
+      ${kv('Outros cursos',p.outros_cursos)}${kv('Escola',p.escola_formacao)}${kv('Ano término',p.ano_termino)}
+      ${kv('Fuma',p.fuma)}${kv('Bebe',p.bebe)}${kv('Tratamentos',p.tratamentos_saude)}
+      ${kv('Disponibilidade',p.disponibilidade)}${kv('Como trabalha',p.como_trabalha)}
+      ${kv('Regiões',p.regioes_atende)}${kv('Atividades',p.atividades_sabe)}${kv('Perfil',p.perfil_define)}
+      ${kv('Limitações',p.condicao_limitacao)}
+      <h3 style="font-size:17px;margin-top:16px">Bancário</h3>
+      ${kv('Pix',p.pix)}${kv('Banco',p.banco)}${kv('Agência',p.agencia)}${kv('Conta',p.conta)}
+      ${!p.ativo?`<button class="btn primary mt16" onclick="ativarProf('${p.id}')">Ativar profissional</button>`:''}
+    </div></section>`);
+}
+
+/* ==================================================================
+   OPORTUNIDADES (mensagem para cuidadores por WhatsApp)
+================================================================== */
+let cacheOps=[];
+async function empOportunidades(){
+  const body=$('#emp-body');body.innerHTML=`<p class="muted">Carregando…</p>`;
+  try{
+    cacheOps=await rpc('cuid_admin_listar_oportunidades');
+    let h=`<div class="painel">
+      <div class="flex" style="margin-bottom:14px"><h3 style="font-size:18px">Oportunidades de plantão</h3><div class="sp"></div>
+        <button class="btn primary sm" onclick="novaOportunidade()">+ Nova oportunidade</button></div>`;
+    if(!cacheOps.length){h+=`<div class="empty"><h3>Nenhuma oportunidade</h3><p>Crie uma vaga para enviar aos cuidadores da região.</p></div>`;}
+    else{h+=cacheOps.map(o=>`<div class="med-item" style="align-items:flex-start">
+      <div style="flex:1">
+        <div><b>${esc(o.regiao||'Região não informada')}</b> ${o.status==='aberta'?'<span class="tag ativo">aberta</span>':'<span class="tag inativo">encerrada</span>'}</div>
+        <div class="muted small">${esc(o.periodo||'')}${o.data_atendimento?' · '+fmtData(o.data_atendimento):''}${o.valor?' · R$ '+fmtNum(o.valor):''}</div>
+        ${o.doencas?`<div class="small" style="margin-top:2px">${esc(o.doencas)}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <button class="btn ghost sm" onclick="dispararOportunidade('${o.id}')">Enviar</button>
+        ${o.status==='aberta'?`<button class="btn-link small" onclick="encerrarOport('${o.id}')">encerrar</button>`:''}
+        <button class="btn-link small" onclick="delOport('${o.id}')">excluir</button>
+      </div></div>`).join('');}
+    h+=`</div>`;body.innerHTML=h;
+  }catch(e){body.innerHTML=`<div class="painel empty"><h3>Erro</h3><p>${esc(e.message)}</p></div>`;}
+}
+async function novaOportunidade(){
+  if(!cacheClientes.length){try{cacheClientes=await rpc('cuid_admin_listar_clientes');}catch(e){}}
+  const ativos=cacheClientes.filter(c=>c.ativo);
+  const opts=`<option value="">— preencher manual —</option>`+ativos.map(c=>`<option value="${c.id}">${esc(c.assistido_nome)}</option>`).join('');
+  $('#modalbox').innerHTML=`<h3>Nova oportunidade</h3>
+    <div class="field"><label class="f">Usar dados de um cliente</label><select id="op_cli" onchange="preencheOport()">${opts}</select></div>
+    <div class="field"><label class="f">Região</label>${chips('op_regiao',REGIOES,[],true)}</div>
+    <div class="grid2"><div class="field"><label class="f">Período</label>${chips('op_periodo',["12h diurno","12h noturno","24 horas"],[],true)}</div>
+    <div class="field"><label class="f">Data</label><input type="date" id="op_data"></div></div>
+    <div class="field"><label class="f">Resumo / condições</label><input type="text" id="op_doencas" placeholder="ex: idoso, hipertensão, deambula com auxílio"></div>
+    <div class="field"><label class="f">Valor do plantão (profissional)</label><input type="number" id="op_valor" step="0.01" placeholder="220"></div>
+    <div class="row"><button class="btn ghost sm" onclick="fecharModal()">Cancelar</button><button class="btn primary sm" id="op_ok">Criar e enviar</button></div>`;
+  $('#modalbg').classList.add('show');ativarControles($('#modalbox'));
+  $('#op_ok').onclick=async()=>{
+    const s=$('#modalbox');
+    const p={cliente_id:$('#op_cli').value,regiao:(getChips(s,'op_regiao')[0]||''),
+      periodo:(getChips(s,'op_periodo')[0]||''),data_atendimento:$('#op_data').value,
+      doencas:$('#op_doencas').value.trim(),valor:$('#op_valor').value};
+    if(!p.regiao){toast('Escolha a região',true);return;}
+    try{const r=await rpc('cuid_admin_criar_oportunidade',{p});
+      if(r.ok){fecharModal();toast('Oportunidade criada');renderDisparo(p);}
+      else toast(r.erro||'Falha',true);
+    }catch(e){toast(e.message,true);}
+  };
+}
+function preencheOport(){
+  const id=$('#op_cli').value;const c=cacheClientes.find(x=>x.id===id);if(!c)return;
+  const s=$('#modalbox');
+  const marca=(name,val)=>{s.querySelectorAll(`[data-chips="${name}"] .chip`).forEach(ch=>{const inp=ch.querySelector('input');const on=inp.value===val;inp.checked=on;ch.classList.toggle('on',on);});};
+  if(c.regiao)marca('op_regiao',c.regiao);
+  if(c.periodo){const map={'Até 12 horas diurno':'12h diurno','Até 12 horas noturno':'12h noturno','24 horas':'24 horas'};marca('op_periodo',map[c.periodo]||'24 horas');}
+  if(c.data_atendimento)$('#op_data').value=c.data_atendimento;
+  $('#op_doencas').value=[c.doencas,(c.locomocao||[]).join('/')].filter(Boolean).join(' · ');
+}
+async function dispararOportunidade(id){
+  const o=cacheOps.find(x=>x.id===id); if(!o){toast('Oportunidade não encontrada',true);return;}
+  renderDisparo(o);
+}
+async function renderDisparo(o){
+  const body=$('#emp-body');
+  body.innerHTML=`<button class="btn-voltar" onclick="empOportunidades()">${ic('back')} Oportunidades</button>
+    <div class="painel mt16"><p class="muted">Buscando cuidadores da região…</p></div>`;
+  const msg=montaMsgWhats(o);
+  let cuidadores=[];
+  try{cuidadores=await rpc('cuid_admin_cuidadores_regiao',{p_regiao:o.regiao||''});}catch(e){}
+  let h=`<button class="btn-voltar" onclick="empOportunidades()">${ic('back')} Oportunidades</button>
+    <div class="painel mt16">
+      <h3 style="font-size:18px">Mensagem para envio</h3>
+      <textarea id="waMsg" style="min-height:150px;margin-top:10px">${esc(msg)}</textarea>
+      <button class="btn ghost sm mt8" onclick="copiar(document.getElementById('waMsg').value)">Copiar mensagem</button>
+    </div>
+    <div class="painel mt16">
+      <h3 style="font-size:18px">Cuidadores ativos ${o.regiao?'— '+esc(o.regiao):''} (${cuidadores.length})</h3>
+      ${cuidadores.length?`<table class="dt"><tbody>${cuidadores.map(cd=>{
+        const tel=(cd.celular||'').replace(/\D/g,'');
+        const wa=tel?`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`:'';
+        return `<tr><td><b>${esc(cd.nome)}</b><br><span class="muted small">${esc(cd.formacao||'')}${cd.celular?' · '+esc(cd.celular):''}</span></td>
+          <td class="right">${wa?`<a class="btn primary sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`:'<span class="muted small">sem telefone</span>'}</td></tr>`;
+      }).join('')}</tbody></table>`:`<div class="empty"><p>Nenhum cuidador ativo nessa região. Cadastre ou ative profissionais que atendam ${esc(o.regiao||'a região')}.</p></div>`}
+    </div>`;
+  body.innerHTML=h;
+}
+function montaMsgWhats(o){
+  const L=[];
+  L.push('Dedica Saúde — nova oportunidade de plantão');
+  if(o.regiao)L.push('Região: '+o.regiao);
+  if(o.periodo)L.push('Período: '+o.periodo);
+  if(o.data_atendimento)L.push('Data: '+fmtData(o.data_atendimento));
+  if(o.doencas)L.push('Perfil: '+o.doencas);
+  if(o.valor)L.push('Valor do plantão: R$ '+fmtNum(o.valor));
+  L.push('');
+  L.push('Tem interesse e disponibilidade? Responda esta mensagem.');
+  return L.join('\n');
+}
+function encerrarOport(id){confirmar('Encerrar oportunidade','Marcar como encerrada?',async()=>{
+  try{await rpc('cuid_admin_encerrar_oportunidade',{p_id:id});toast('Encerrada');empOportunidades();}catch(e){toast(e.message,true);}},'Encerrar',false);}
+function delOport(id){confirmar('Excluir oportunidade','Remover esta oportunidade?',async()=>{
+  try{await rpc('cuid_admin_del_oportunidade',{p_id:id});toast('Removida');empOportunidades();}catch(e){toast(e.message,true);}});}
+
+
+/* boot */
+function telaInicial(){telaAdmin();}
+telaInicial();
+</script>
+</body>
+</html>
