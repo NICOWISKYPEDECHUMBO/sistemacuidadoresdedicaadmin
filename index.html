@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --tinta:#132a24;        /* verde petróleo escuro p/ títulos */
@@ -433,11 +434,12 @@ function empTab(t){
 async function empClientes(){
   refreshAtual=empClientes;
   const body=$('#emp-body');body.innerHTML=`<p class="muted">Carregando clientes…</p>`;
+  const barra=`<div class="flex" style="margin-bottom:14px"><h3 style="font-size:20px">Clientes</h3><div class="sp"></div><button class="btn ghost sm" onclick="abrirImport('clientes')">Importar planilha</button></div>`;
   try{
     cacheClientes=await rpc('cuid_admin_listar_clientes');
-    if(!cacheClientes.length){body.innerHTML=`<div class="painel empty"><h3>Nenhum cliente ainda</h3><p>Os cadastros enviados pela ficha aparecem aqui para você liberar.</p></div>`;return;}
+    if(!cacheClientes.length){body.innerHTML=barra+`<div class="painel empty"><h3>Nenhum cliente ainda</h3><p>Os cadastros enviados pela ficha aparecem aqui para você liberar.</p></div>`;return;}
     const ativos=cacheClientes.filter(c=>c.ativo), pend=cacheClientes.filter(c=>!c.ativo);
-    let h='';
+    let h=barra;
     if(pend.length){h+=`<div class="painel" style="margin-bottom:16px;border-color:#e6cf9a">
       <h3 style="font-size:18px">Aguardando liberação (${pend.length})</h3>
       <table class="dt"><tbody>${pend.map(c=>`<tr>
@@ -633,11 +635,12 @@ function cliFicha(id){
 async function empProfs(){
   refreshAtual=empProfs;
   const body=$('#emp-body');body.innerHTML=`<p class="muted">Carregando profissionais…</p>`;
+  const barra=`<div class="flex" style="margin-bottom:14px"><h3 style="font-size:20px">Profissionais</h3><div class="sp"></div><button class="btn ghost sm" onclick="abrirImport('profissionais')">Importar planilha</button></div>`;
   try{
     cacheProfs=await rpc('cuid_admin_listar_profissionais');
-    if(!cacheProfs.length){body.innerHTML=`<div class="painel empty"><h3>Nenhum profissional</h3><p>Os cadastros profissionais aparecem aqui.</p></div>`;return;}
+    if(!cacheProfs.length){body.innerHTML=barra+`<div class="painel empty"><h3>Nenhum profissional</h3><p>Os cadastros profissionais aparecem aqui.</p></div>`;return;}
     const pend=cacheProfs.filter(p=>!p.ativo),ativ=cacheProfs.filter(p=>p.ativo);
-    let h='';
+    let h=barra;
     if(pend.length){h+=`<div class="painel" style="margin-bottom:16px;border-color:#e6cf9a"><h3 style="font-size:18px">Aguardando documentos (${pend.length})</h3>
       <table class="dt"><tbody>${pend.map(p=>`<tr><td><b>${esc(p.nome)}</b><br><span class="muted small">${esc(p.formacao||'')} · ${esc((p.regioes_atende||[]).join(', '))}</span></td>
       <td class="right"><button class="btn primary sm" onclick="ativarProf('${p.id}')">Ativar</button>
@@ -781,6 +784,121 @@ function encerrarOport(id){confirmar('Encerrar oportunidade','Marcar como encerr
 function delOport(id){confirmar('Excluir oportunidade','Remover esta oportunidade?',async()=>{
   try{await rpc('cuid_admin_del_oportunidade',{p_id:id});toast('Removida');empOportunidades();}catch(e){toast(e.message,true);}});}
 
+
+/* ==================================================================
+   IMPORTAÇÃO POR PLANILHA (Excel .xlsx) — clientes e profissionais
+================================================================== */
+// mapa de colunas de cada tipo: [cabeçalho da planilha, campo no banco, 'arr' se for lista separada por vírgula]
+const IMPORT_MAPA = {
+  profissionais: {
+    titulo:'profissionais (cuidadores)',
+    rpc:'cuid_admin_import_profissionais',
+    cols:[
+      ['Nome','nome'],['Nascimento (AAAA-MM-DD)','data_nasc'],['CPF','cpf'],['CNPJ','cnpj'],
+      ['Sexo','sexo'],['Estado civil','estado_civil'],['E-mail','email'],['Celular','celular'],
+      ['Celular recado','celular_recado'],['Endereço','endereco'],['Escolaridade','escolaridade'],
+      ['Formação','formacao'],['Outros cursos','outros_cursos'],['Fuma','fuma'],['Bebe','bebe'],
+      ['Disponibilidade','disponibilidade'],
+      ['Regiões (separe por vírgula)','regioes_atende','arr'],
+      ['Atividades que sabe (vírgula)','atividades_sabe','arr'],
+      ['Perfil (vírgula)','perfil_define','arr'],
+      ['Pix','pix'],['Banco','banco'],['Agência','agencia'],['Conta','conta']
+    ],
+    exemplo:['Maria da Silva','1985-04-12','000.000.000-00','','Feminino','Solteiro(a)','maria@email.com','21999990000','','Rua X, 100 - Centro','Médio','Cuidador(a) de Pessoas','Curso de primeiros socorros','Não','Não','24 horas','Zona Norte RJ, Zona sul RJ','Companhia e supervisão, Troca de fraldas','Calmo(a) e paciente, Pontual e comprometido(a)','maria@pix.com','Caixa','0001','12345-6']
+  },
+  clientes: {
+    titulo:'clientes (assistidos)',
+    rpc:'cuid_admin_import_clientes',
+    cols:[
+      ['Nome do assistido','assistido_nome'],['Nascimento (AAAA-MM-DD)','assistido_nasc'],
+      ['Telefone','telefone'],['Região','regiao'],['Período','periodo'],
+      ['Rua','end_rua'],['Número','end_numero'],['Bairro','end_bairro'],
+      ['Município','end_municipio'],['Estado','end_estado'],['Ponto de referência','ponto_referencia'],
+      ['Doenças','doencas'],['Lucidez','lucidez'],['Comunicação','comunicacao'],
+      ['Locomoção (vírgula)','locomocao','arr'],['Banho','banho'],['Fraldas','fraldas'],
+      ['Resumo / anamnese','anamnese'],
+      ['Contratante - nome','contr_nome'],['Contratante - CPF','contr_cpf'],
+      ['Contratante - e-mail','contr_email'],['Contratante - telefones','contr_telefones']
+    ],
+    exemplo:['Nelson Fernandes','1940-02-20','21988887777','Zona Norte RJ','24 horas','Rua Marechal Jofre','61','Grajaú','Rio de Janeiro','RJ','Próximo à praça','Hipertensão, diabetes','Sim','Normal','Auxílio pessoal, Andador','Sentado no chuveiro','Dia e noite','Deambula com auxílio, boa comunicação','João Fernandes','111.111.111-11','joao@email.com','21977776666']
+  }
+};
+let importLinhas=[];  // linhas prontas (objetos) para envio
+
+function abrirImport(tipo){
+  const cfg=IMPORT_MAPA[tipo];importLinhas=[];
+  $('#modalbox').innerHTML=`<h3>Importar ${cfg.titulo}</h3>
+    <p class="muted small" style="margin:6px 0 14px">Baixe o modelo, preencha uma linha por cadastro e envie. Campos com "(vírgula)" aceitam vários valores separados por vírgula.</p>
+    <button class="btn ghost sm" onclick="baixarModelo('${tipo}')">Baixar modelo (.xlsx)</button>
+    <div class="divider"></div>
+    <label class="f">Planilha preenchida (.xlsx)</label>
+    <input type="file" id="impFile" accept=".xlsx,.xls" onchange="lerArquivoImport('${tipo}',this)">
+    <div id="impPreview" class="mt16"></div>
+    <div class="row mt16"><button class="btn ghost sm" onclick="fecharModal()">Cancelar</button>
+      <button class="btn primary sm" id="impOk" disabled onclick="confirmarImport('${tipo}')">Importar</button></div>`;
+  $('#modalbg').classList.add('show');
+}
+
+function baixarModelo(tipo){
+  const cfg=IMPORT_MAPA[tipo];
+  const headers=cfg.cols.map(c=>c[0]);
+  const ws=XLSX.utils.aoa_to_sheet([headers, cfg.exemplo]);
+  ws['!cols']=headers.map(h=>({wch:Math.max(14,h.length+2)}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Modelo');
+  XLSX.writeFile(wb,`modelo-${tipo}.xlsx`);
+}
+
+function celData(v){ // normaliza datas do Excel para AAAA-MM-DD
+  if(v==null||v==='')return '';
+  if(v instanceof Date){const z=n=>String(n).padStart(2,'0');return v.getFullYear()+'-'+z(v.getMonth()+1)+'-'+z(v.getDate());}
+  return (''+v).trim();
+}
+function lerArquivoImport(tipo,input){
+  const cfg=IMPORT_MAPA[tipo];const f=input.files&&input.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const linhas=XLSX.utils.sheet_to_json(ws,{header:1,blankrows:false,raw:false,dateNF:'yyyy-mm-dd'});
+      if(!linhas.length){toast('Planilha vazia',true);return;}
+      const head=linhas[0].map(x=>(''+x).trim());
+      // acha índice de cada coluna do mapa pelo cabeçalho (comparação flexível)
+      const idx={};
+      cfg.cols.forEach(c=>{const i=head.findIndex(h=>h.toLowerCase().startsWith(c[0].toLowerCase().split(' (')[0]));idx[c[1]]=i;});
+      importLinhas=[];
+      for(let r=1;r<linhas.length;r++){
+        const row=linhas[r];if(!row||!row.length)continue;
+        const obj={};
+        cfg.cols.forEach(c=>{const i=idx[c[1]];let v=i>=0?row[i]:'';
+          v=/nasc/i.test(c[1])?celData(v):(v==null?'':(''+v).trim());
+          if(c[2]==='arr') obj[c[1]]=v?v.split(',').map(x=>x.trim()).filter(Boolean):[];
+          else obj[c[1]]=v;
+        });
+        const chave=tipo==='clientes'?obj.assistido_nome:obj.nome;
+        if(chave) importLinhas.push(obj);
+      }
+      const prev=$('#impPreview');
+      if(!importLinhas.length){prev.innerHTML=`<p class="muted small">Nenhuma linha com nome preenchido.</p>`;$('#impOk').disabled=true;return;}
+      const nome=l=>tipo==='clientes'?l.assistido_nome:l.nome;
+      prev.innerHTML=`<div class="painel" style="padding:12px"><b>${importLinhas.length} cadastro(s) prontos</b>
+        <div class="muted small" style="margin-top:6px;max-height:120px;overflow:auto">${importLinhas.map(nome).map(esc).join('<br>')}</div></div>`;
+      $('#impOk').disabled=false;
+    }catch(err){toast('Erro ao ler planilha: '+err.message,true);}
+  };
+  reader.readAsArrayBuffer(f);
+}
+async function confirmarImport(tipo){
+  if(!importLinhas.length)return;
+  const cfg=IMPORT_MAPA[tipo];const b=$('#impOk');b.disabled=true;b.textContent='Importando…';
+  try{
+    const r=await rpc(cfg.rpc,{p:importLinhas});
+    fecharModal();
+    toast((r&&r.criados!=null?r.criados:importLinhas.length)+' cadastro(s) importados');
+    tipo==='clientes'?empClientes():empProfs();
+  }catch(e){toast(e.message,true);b.disabled=false;b.textContent='Importar';}
+}
 
 /* boot */
 function telaInicial(){telaAdmin();}
